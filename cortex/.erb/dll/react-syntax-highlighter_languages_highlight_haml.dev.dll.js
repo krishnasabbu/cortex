@@ -1,0 +1,21 @@
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+(global["webpackChunkrenderer"] = global["webpackChunkrenderer"] || []).push([["react-syntax-highlighter_languages_highlight_haml"],{
+
+/***/ "./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/haml.js":
+/*!***********************************************************************************************!*\
+  !*** ./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/haml.js ***!
+  \***********************************************************************************************/
+/***/ ((module) => {
+
+eval("/*\nLanguage: HAML\nRequires: ruby.js\nAuthor: Dan Allen <dan.j.allen@gmail.com>\nWebsite: http://haml.info\nCategory: template\n*/\n\n// TODO support filter tags like :javascript, support inline HTML\nfunction haml(hljs) {\n  return {\n    name: 'HAML',\n    case_insensitive: true,\n    contains: [\n      {\n        className: 'meta',\n        begin: '^!!!( (5|1\\\\.1|Strict|Frameset|Basic|Mobile|RDFa|XML\\\\b.*))?$',\n        relevance: 10\n      },\n      // FIXME these comments should be allowed to span indented lines\n      hljs.COMMENT(\n        '^\\\\s*(!=#|=#|-#|/).*$',\n        false,\n        {\n          relevance: 0\n        }\n      ),\n      {\n        begin: '^\\\\s*(-|=|!=)(?!#)',\n        starts: {\n          end: '\\\\n',\n          subLanguage: 'ruby'\n        }\n      },\n      {\n        className: 'tag',\n        begin: '^\\\\s*%',\n        contains: [\n          {\n            className: 'selector-tag',\n            begin: '\\\\w+'\n          },\n          {\n            className: 'selector-id',\n            begin: '#[\\\\w-]+'\n          },\n          {\n            className: 'selector-class',\n            begin: '\\\\.[\\\\w-]+'\n          },\n          {\n            begin: /\\{\\s*/,\n            end: /\\s*\\}/,\n            contains: [\n              {\n                begin: ':\\\\w+\\\\s*=>',\n                end: ',\\\\s+',\n                returnBegin: true,\n                endsWithParent: true,\n                contains: [\n                  {\n                    className: 'attr',\n                    begin: ':\\\\w+'\n                  },\n                  hljs.APOS_STRING_MODE,\n                  hljs.QUOTE_STRING_MODE,\n                  {\n                    begin: '\\\\w+',\n                    relevance: 0\n                  }\n                ]\n              }\n            ]\n          },\n          {\n            begin: '\\\\(\\\\s*',\n            end: '\\\\s*\\\\)',\n            excludeEnd: true,\n            contains: [\n              {\n                begin: '\\\\w+\\\\s*=',\n                end: '\\\\s+',\n                returnBegin: true,\n                endsWithParent: true,\n                contains: [\n                  {\n                    className: 'attr',\n                    begin: '\\\\w+',\n                    relevance: 0\n                  },\n                  hljs.APOS_STRING_MODE,\n                  hljs.QUOTE_STRING_MODE,\n                  {\n                    begin: '\\\\w+',\n                    relevance: 0\n                  }\n                ]\n              }\n            ]\n          }\n        ]\n      },\n      {\n        begin: '^\\\\s*[=~]\\\\s*'\n      },\n      {\n        begin: /#\\{/,\n        starts: {\n          end: /\\}/,\n          subLanguage: 'ruby'\n        }\n      }\n    ]\n  };\n}\n\nmodule.exports = haml;\n\n\n//# sourceURL=webpack://renderer/./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/haml.js?");
+
+/***/ })
+
+}]);

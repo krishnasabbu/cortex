@@ -1,0 +1,21 @@
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+(global["webpackChunkrenderer"] = global["webpackChunkrenderer"] || []).push([["react-syntax-highlighter_languages_highlight_accesslog"],{
+
+/***/ "./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/accesslog.js":
+/*!****************************************************************************************************!*\
+  !*** ./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/accesslog.js ***!
+  \****************************************************************************************************/
+/***/ ((module) => {
+
+eval("/**\n * @param {string} value\n * @returns {RegExp}\n * */\n\n/**\n * @param {RegExp | string } re\n * @returns {string}\n */\nfunction source(re) {\n  if (!re) return null;\n  if (typeof re === \"string\") return re;\n\n  return re.source;\n}\n\n/**\n * @param {...(RegExp | string) } args\n * @returns {string}\n */\nfunction concat(...args) {\n  const joined = args.map((x) => source(x)).join(\"\");\n  return joined;\n}\n\n/**\n * Any of the passed expresssions may match\n *\n * Creates a huge this | this | that | that match\n * @param {(RegExp | string)[] } args\n * @returns {string}\n */\nfunction either(...args) {\n  const joined = '(' + args.map((x) => source(x)).join(\"|\") + \")\";\n  return joined;\n}\n\n/*\n Language: Apache Access Log\n Author: Oleg Efimov <efimovov@gmail.com>\n Description: Apache/Nginx Access Logs\n Website: https://httpd.apache.org/docs/2.4/logs.html#accesslog\n Audit: 2020\n */\n\n/** @type LanguageFn */\nfunction accesslog(_hljs) {\n  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods\n  const HTTP_VERBS = [\n    \"GET\",\n    \"POST\",\n    \"HEAD\",\n    \"PUT\",\n    \"DELETE\",\n    \"CONNECT\",\n    \"OPTIONS\",\n    \"PATCH\",\n    \"TRACE\"\n  ];\n  return {\n    name: 'Apache Access Log',\n    contains: [\n      // IP\n      {\n        className: 'number',\n        begin: /^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(:\\d{1,5})?\\b/,\n        relevance: 5\n      },\n      // Other numbers\n      {\n        className: 'number',\n        begin: /\\b\\d+\\b/,\n        relevance: 0\n      },\n      // Requests\n      {\n        className: 'string',\n        begin: concat(/\"/, either(...HTTP_VERBS)),\n        end: /\"/,\n        keywords: HTTP_VERBS,\n        illegal: /\\n/,\n        relevance: 5,\n        contains: [\n          {\n            begin: /HTTP\\/[12]\\.\\d'/,\n            relevance: 5\n          }\n        ]\n      },\n      // Dates\n      {\n        className: 'string',\n        // dates must have a certain length, this prevents matching\n        // simple array accesses a[123] and [] and other common patterns\n        // found in other languages\n        begin: /\\[\\d[^\\]\\n]{8,}\\]/,\n        illegal: /\\n/,\n        relevance: 1\n      },\n      {\n        className: 'string',\n        begin: /\\[/,\n        end: /\\]/,\n        illegal: /\\n/,\n        relevance: 0\n      },\n      // User agent / relevance boost\n      {\n        className: 'string',\n        begin: /\"Mozilla\\/\\d\\.\\d \\(/,\n        end: /\"/,\n        illegal: /\\n/,\n        relevance: 3\n      },\n      // Strings\n      {\n        className: 'string',\n        begin: /\"/,\n        end: /\"/,\n        illegal: /\\n/,\n        relevance: 0\n      }\n    ]\n  };\n}\n\nmodule.exports = accesslog;\n\n\n//# sourceURL=webpack://renderer/./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/accesslog.js?");
+
+/***/ })
+
+}]);

@@ -1,0 +1,21 @@
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+(global["webpackChunkrenderer"] = global["webpackChunkrenderer"] || []).push([["react-syntax-highlighter_languages_highlight_actionscript"],{
+
+/***/ "./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/actionscript.js":
+/*!*******************************************************************************************************!*\
+  !*** ./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/actionscript.js ***!
+  \*******************************************************************************************************/
+/***/ ((module) => {
+
+eval("/**\n * @param {string} value\n * @returns {RegExp}\n * */\n\n/**\n * @param {RegExp | string } re\n * @returns {string}\n */\nfunction source(re) {\n  if (!re) return null;\n  if (typeof re === \"string\") return re;\n\n  return re.source;\n}\n\n/**\n * @param {...(RegExp | string) } args\n * @returns {string}\n */\nfunction concat(...args) {\n  const joined = args.map((x) => source(x)).join(\"\");\n  return joined;\n}\n\n/*\nLanguage: ActionScript\nAuthor: Alexander Myadzel <myadzel@gmail.com>\nCategory: scripting\nAudit: 2020\n*/\n\n/** @type LanguageFn */\nfunction actionscript(hljs) {\n  const IDENT_RE = /[a-zA-Z_$][a-zA-Z0-9_$]*/;\n  const IDENT_FUNC_RETURN_TYPE_RE = /([*]|[a-zA-Z_$][a-zA-Z0-9_$]*)/;\n\n  const AS3_REST_ARG_MODE = {\n    className: 'rest_arg',\n    begin: /[.]{3}/,\n    end: IDENT_RE,\n    relevance: 10\n  };\n\n  return {\n    name: 'ActionScript',\n    aliases: [ 'as' ],\n    keywords: {\n      keyword: 'as break case catch class const continue default delete do dynamic each ' +\n        'else extends final finally for function get if implements import in include ' +\n        'instanceof interface internal is namespace native new override package private ' +\n        'protected public return set static super switch this throw try typeof use var void ' +\n        'while with',\n      literal: 'true false null undefined'\n    },\n    contains: [\n      hljs.APOS_STRING_MODE,\n      hljs.QUOTE_STRING_MODE,\n      hljs.C_LINE_COMMENT_MODE,\n      hljs.C_BLOCK_COMMENT_MODE,\n      hljs.C_NUMBER_MODE,\n      {\n        className: 'class',\n        beginKeywords: 'package',\n        end: /\\{/,\n        contains: [ hljs.TITLE_MODE ]\n      },\n      {\n        className: 'class',\n        beginKeywords: 'class interface',\n        end: /\\{/,\n        excludeEnd: true,\n        contains: [\n          { beginKeywords: 'extends implements' },\n          hljs.TITLE_MODE\n        ]\n      },\n      {\n        className: 'meta',\n        beginKeywords: 'import include',\n        end: /;/,\n        keywords: { 'meta-keyword': 'import include' }\n      },\n      {\n        className: 'function',\n        beginKeywords: 'function',\n        end: /[{;]/,\n        excludeEnd: true,\n        illegal: /\\S/,\n        contains: [\n          hljs.TITLE_MODE,\n          {\n            className: 'params',\n            begin: /\\(/,\n            end: /\\)/,\n            contains: [\n              hljs.APOS_STRING_MODE,\n              hljs.QUOTE_STRING_MODE,\n              hljs.C_LINE_COMMENT_MODE,\n              hljs.C_BLOCK_COMMENT_MODE,\n              AS3_REST_ARG_MODE\n            ]\n          },\n          { begin: concat(/:\\s*/, IDENT_FUNC_RETURN_TYPE_RE) }\n        ]\n      },\n      hljs.METHOD_GUARD\n    ],\n    illegal: /#/\n  };\n}\n\nmodule.exports = actionscript;\n\n\n//# sourceURL=webpack://renderer/./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/actionscript.js?");
+
+/***/ })
+
+}]);

@@ -1,0 +1,21 @@
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+(global["webpackChunkrenderer"] = global["webpackChunkrenderer"] || []).push([["react-syntax-highlighter_languages_highlight_dts"],{
+
+/***/ "./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/dts.js":
+/*!**********************************************************************************************!*\
+  !*** ./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/dts.js ***!
+  \**********************************************************************************************/
+/***/ ((module) => {
+
+eval("/*\nLanguage: Device Tree\nDescription: *.dts files used in the Linux kernel\nAuthor: Martin Braun <martin.braun@ettus.com>, Moritz Fischer <moritz.fischer@ettus.com>\nWebsite: https://elinux.org/Device_Tree_Reference\nCategory: config\n*/\n\n/** @type LanguageFn */\nfunction dts(hljs) {\n  const STRINGS = {\n    className: 'string',\n    variants: [\n      hljs.inherit(hljs.QUOTE_STRING_MODE, {\n        begin: '((u8?|U)|L)?\"'\n      }),\n      {\n        begin: '(u8?|U)?R\"',\n        end: '\"',\n        contains: [hljs.BACKSLASH_ESCAPE]\n      },\n      {\n        begin: '\\'\\\\\\\\?.',\n        end: '\\'',\n        illegal: '.'\n      }\n    ]\n  };\n\n  const NUMBERS = {\n    className: 'number',\n    variants: [\n      {\n        begin: '\\\\b(\\\\d+(\\\\.\\\\d*)?|\\\\.\\\\d+)(u|U|l|L|ul|UL|f|F)'\n      },\n      {\n        begin: hljs.C_NUMBER_RE\n      }\n    ],\n    relevance: 0\n  };\n\n  const PREPROCESSOR = {\n    className: 'meta',\n    begin: '#',\n    end: '$',\n    keywords: {\n      'meta-keyword': 'if else elif endif define undef ifdef ifndef'\n    },\n    contains: [\n      {\n        begin: /\\\\\\n/,\n        relevance: 0\n      },\n      {\n        beginKeywords: 'include',\n        end: '$',\n        keywords: {\n          'meta-keyword': 'include'\n        },\n        contains: [\n          hljs.inherit(STRINGS, {\n            className: 'meta-string'\n          }),\n          {\n            className: 'meta-string',\n            begin: '<',\n            end: '>',\n            illegal: '\\\\n'\n          }\n        ]\n      },\n      STRINGS,\n      hljs.C_LINE_COMMENT_MODE,\n      hljs.C_BLOCK_COMMENT_MODE\n    ]\n  };\n\n  const DTS_REFERENCE = {\n    className: 'variable',\n    begin: /&[a-z\\d_]*\\b/\n  };\n\n  const DTS_KEYWORD = {\n    className: 'meta-keyword',\n    begin: '/[a-z][a-z\\\\d-]*/'\n  };\n\n  const DTS_LABEL = {\n    className: 'symbol',\n    begin: '^\\\\s*[a-zA-Z_][a-zA-Z\\\\d_]*:'\n  };\n\n  const DTS_CELL_PROPERTY = {\n    className: 'params',\n    begin: '<',\n    end: '>',\n    contains: [\n      NUMBERS,\n      DTS_REFERENCE\n    ]\n  };\n\n  const DTS_NODE = {\n    className: 'class',\n    begin: /[a-zA-Z_][a-zA-Z\\d_@]*\\s\\{/,\n    end: /[{;=]/,\n    returnBegin: true,\n    excludeEnd: true\n  };\n\n  const DTS_ROOT_NODE = {\n    className: 'class',\n    begin: '/\\\\s*\\\\{',\n    end: /\\};/,\n    relevance: 10,\n    contains: [\n      DTS_REFERENCE,\n      DTS_KEYWORD,\n      DTS_LABEL,\n      DTS_NODE,\n      DTS_CELL_PROPERTY,\n      hljs.C_LINE_COMMENT_MODE,\n      hljs.C_BLOCK_COMMENT_MODE,\n      NUMBERS,\n      STRINGS\n    ]\n  };\n\n  return {\n    name: 'Device Tree',\n    keywords: \"\",\n    contains: [\n      DTS_ROOT_NODE,\n      DTS_REFERENCE,\n      DTS_KEYWORD,\n      DTS_LABEL,\n      DTS_NODE,\n      DTS_CELL_PROPERTY,\n      hljs.C_LINE_COMMENT_MODE,\n      hljs.C_BLOCK_COMMENT_MODE,\n      NUMBERS,\n      STRINGS,\n      PREPROCESSOR,\n      {\n        begin: hljs.IDENT_RE + '::',\n        keywords: \"\"\n      }\n    ]\n  };\n}\n\nmodule.exports = dts;\n\n\n//# sourceURL=webpack://renderer/./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/dts.js?");
+
+/***/ })
+
+}]);

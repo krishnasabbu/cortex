@@ -1,0 +1,21 @@
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+(global["webpackChunkrenderer"] = global["webpackChunkrenderer"] || []).push([["react-syntax-highlighter_languages_highlight_django"],{
+
+/***/ "./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/django.js":
+/*!*************************************************************************************************!*\
+  !*** ./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/django.js ***!
+  \*************************************************************************************************/
+/***/ ((module) => {
+
+eval("/*\nLanguage: Django\nDescription: Django is a high-level Python Web framework that encourages rapid development and clean, pragmatic design.\nRequires: xml.js\nAuthor: Ivan Sagalaev <maniac@softwaremaniacs.org>\nContributors: Ilya Baryshev <baryshev@gmail.com>\nWebsite: https://www.djangoproject.com\nCategory: template\n*/\n\n/** @type LanguageFn */\nfunction django(hljs) {\n  const FILTER = {\n    begin: /\\|[A-Za-z]+:?/,\n    keywords: {\n      name:\n        'truncatewords removetags linebreaksbr yesno get_digit timesince random striptags ' +\n        'filesizeformat escape linebreaks length_is ljust rjust cut urlize fix_ampersands ' +\n        'title floatformat capfirst pprint divisibleby add make_list unordered_list urlencode ' +\n        'timeuntil urlizetrunc wordcount stringformat linenumbers slice date dictsort ' +\n        'dictsortreversed default_if_none pluralize lower join center default ' +\n        'truncatewords_html upper length phone2numeric wordwrap time addslashes slugify first ' +\n        'escapejs force_escape iriencode last safe safeseq truncatechars localize unlocalize ' +\n        'localtime utc timezone'\n    },\n    contains: [\n      hljs.QUOTE_STRING_MODE,\n      hljs.APOS_STRING_MODE\n    ]\n  };\n\n  return {\n    name: 'Django',\n    aliases: ['jinja'],\n    case_insensitive: true,\n    subLanguage: 'xml',\n    contains: [\n      hljs.COMMENT(/\\{%\\s*comment\\s*%\\}/, /\\{%\\s*endcomment\\s*%\\}/),\n      hljs.COMMENT(/\\{#/, /#\\}/),\n      {\n        className: 'template-tag',\n        begin: /\\{%/,\n        end: /%\\}/,\n        contains: [{\n          className: 'name',\n          begin: /\\w+/,\n          keywords: {\n            name:\n                'comment endcomment load templatetag ifchanged endifchanged if endif firstof for ' +\n                'endfor ifnotequal endifnotequal widthratio extends include spaceless ' +\n                'endspaceless regroup ifequal endifequal ssi now with cycle url filter ' +\n                'endfilter debug block endblock else autoescape endautoescape csrf_token empty elif ' +\n                'endwith static trans blocktrans endblocktrans get_static_prefix get_media_prefix ' +\n                'plural get_current_language language get_available_languages ' +\n                'get_current_language_bidi get_language_info get_language_info_list localize ' +\n                'endlocalize localtime endlocaltime timezone endtimezone get_current_timezone ' +\n                'verbatim'\n          },\n          starts: {\n            endsWithParent: true,\n            keywords: 'in by as',\n            contains: [FILTER],\n            relevance: 0\n          }\n        }]\n      },\n      {\n        className: 'template-variable',\n        begin: /\\{\\{/,\n        end: /\\}\\}/,\n        contains: [FILTER]\n      }\n    ]\n  };\n}\n\nmodule.exports = django;\n\n\n//# sourceURL=webpack://renderer/./node_modules/react-syntax-highlighter/node_modules/highlight.js/lib/languages/django.js?");
+
+/***/ })
+
+}]);
