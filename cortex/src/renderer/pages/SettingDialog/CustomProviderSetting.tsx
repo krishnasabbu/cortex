@@ -119,6 +119,7 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
         >
           <MenuItem value="openai">{t('OpenAI API Compatible')}</MenuItem>
           <MenuItem value="mcp">{t('MCP Server')}</MenuItem>
+          <MenuItem value="tachyon">{t('Tachyon')}</MenuItem>
         </Select>
       </FormControl>
 
@@ -187,6 +188,109 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
       )}
       {customProvider.api === 'openai' && (
         <>
+          <TextFieldReset
+            margin="dense"
+            label={t('api host')}
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={customProvider.host}
+            placeholder="https://api.openai.com/v1"
+            defaultValue="https://api.openai.com/v1"
+            onValueChange={(value) => {
+              value = value.trim()
+              if (value.length > 4 && !value.startsWith('http')) {
+                value = 'https://' + value
+              }
+              setCustomProvider({ ...customProvider, host: value })
+            }}
+          />
+          <TextFieldReset
+            margin="dense"
+            label={t('api path')}
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={customProvider.path}
+            placeholder="/chat/completions"
+            defaultValue="/chat/completions"
+            onValueChange={(value) => {
+              setCustomProvider({ ...customProvider, path: value.trim() })
+            }}
+          />
+          <FormGroup>
+            <FormControlLabel
+              className="px-2 mb-2"
+              control={<Switch size="small" />}
+              label={
+                <Typography variant="body2" className="flex items-center justify-center opacity-50">
+                  {t('Improve Network Compatibility')}
+                  <Tooltip
+                    title={t('Use proxy to resolve CORS and other network issues')}
+                    className="cursor-pointer"
+                    placement="top"
+                  >
+                    <HelpOutlineIcon className="opacity-60 ml-0.5" fontSize="small" />
+                  </Tooltip>
+                </Typography>
+              }
+              checked={customProvider.useProxy}
+              onChange={(e, checked) => setCustomProvider({ ...customProvider, useProxy: checked })}
+            />
+          </FormGroup>
+          <PasswordTextField
+            label={t('api key')}
+            value={customProvider.key}
+            setValue={(value) => {
+              setCustomProvider({ ...customProvider, key: value })
+            }}
+          />
+          <CreatableSelect
+            label={t('model')}
+            value={customProvider.model}
+            options={customProvider.modelOptions || []}
+            onChangeValue={(v) => setCustomProvider({ ...customProvider, model: v })}
+            onUpdateOptions={(v) => setCustomProvider({ ...customProvider, modelOptions: v })}
+          />
+          <MaxContextMessageCountSlider
+            value={toBeRemoved_getContextMessageCount(
+              settingsEdit.openaiMaxContextMessageCount,
+              settingsEdit.maxContextMessageCount
+            )}
+            onChange={(v) => setSettingsEdit({ ...settingsEdit, maxContextMessageCount: v })}
+          />
+          <TemperatureSlider
+            value={settingsEdit.temperature}
+            onChange={(v) => setSettingsEdit({ ...settingsEdit, temperature: v })}
+          />
+          <TopPSlider topP={settingsEdit.topP} setTopP={(v) => setSettingsEdit({ ...settingsEdit, topP: v })} />
+        </>
+      )}
+      {customProvider.api === 'tachyon' && (
+        <>
+          <TextFieldReset
+            margin="dense"
+            label="Consumer Key"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={customProvider.consumerKey || ''}
+            onValueChange={(value) => setCustomProvider({ ...customProvider, consumerKey: value })}
+          />
+          <PasswordTextField
+            label="Consumer Secret"
+            value={customProvider.consumerSecret || ''}
+            setValue={(value) => setCustomProvider({ ...customProvider, consumerSecret: value })}
+          />
+          <TextFieldReset
+            margin="dense"
+            label="Use Case ID"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={customProvider.useCaseId || ''}
+            onValueChange={(value) => setCustomProvider({ ...customProvider, useCaseId: value })}
+          />
           <TextFieldReset
             margin="dense"
             label={t('api host')}
