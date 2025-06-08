@@ -160,19 +160,21 @@ export default function AIProviderSelect(props: ModelConfigProps) {
         >
           {globalSettings.customProviders.length > 0 && (
             <div>
-              {globalSettings.customProviders.map((provider, index) => (
-                <MenuItem
-                  key={index}
-                  disableRipple
-                  onClick={() => {
-                    onSwitchCustomProvider(provider.id)
-                    closeMenu()
-                  }}
-                >
-                  <DashboardCustomizeIcon />
-                  {provider.name || t('Untitled')}
-                </MenuItem>
-              ))}
+              {globalSettings.customProviders
+                .filter((provider) => provider.workflow !== true)
+                .map((provider, index) => (
+                  <MenuItem
+                    key={index}
+                    disableRipple
+                    onClick={() => {
+                      onSwitchCustomProvider(provider.id);
+                      closeMenu();
+                    }}
+                  >
+                    <DashboardCustomizeIcon />
+                    {provider.name || t('Untitled')}
+                  </MenuItem>
+                ))}
               {AddProviderMenuItem}
               <Divider sx={{ my: 0.5 }} />
             </div>

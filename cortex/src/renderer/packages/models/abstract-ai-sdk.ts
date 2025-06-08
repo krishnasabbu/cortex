@@ -77,12 +77,12 @@ export default abstract class AbstractAISDKModel implements ModelInterface {
       }
 
       // 添加请求信息到 Sentry
-      Sentry.withScope((scope) => {
-        scope.setTag('provider_name', this.name)
-        scope.setExtra('messages', JSON.stringify(messages))
-        scope.setExtra('options', JSON.stringify(options))
-        Sentry.captureException(e)
-      })
+      // Sentry.withScope((scope) => {
+      //   scope.setTag('provider_name', this.name)
+      //   scope.setExtra('messages', JSON.stringify(messages))
+      //   scope.setExtra('options', JSON.stringify(options))
+      //   Sentry.captureException(e)
+      // })
       throw e
     }
   }
@@ -124,11 +124,11 @@ export default abstract class AbstractAISDKModel implements ModelInterface {
     if (!this.isSupportSystemMessage()) {
       rawMessages = rawMessages.map((m) => ({ ...m, role: m.role === 'system' ? 'user' : m.role }))
     }
-    console.info('stream chunk', JSON.stringify(rawMessages))
+    console.info('stream chunk 1', JSON.stringify(rawMessages))
     const messages = sequenceMessages(rawMessages)
-    console.info('stream chunk', JSON.stringify(messages))
+    console.info('stream chunk 2', JSON.stringify(messages))
     const coreMessages = await convertToCoreMessages(messages)
-    console.info('stream chunk', JSON.stringify(coreMessages))
+    console.info('stream chunk 3', JSON.stringify(coreMessages))
 
     const result = streamText({
       model,

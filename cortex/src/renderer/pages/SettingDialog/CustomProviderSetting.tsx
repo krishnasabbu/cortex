@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import CreatableSelect from '@/components/CreatableSelect'
 import MaxContextMessageCountSlider, {
   toBeRemoved_getContextMessageCount,
@@ -25,7 +25,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Trans, useTranslation } from 'react-i18next'
-import { CustomProvider, ModelProvider, ModelSettings } from '@/../shared/types'
+import { CustomProvider, ModelProvider, ModelSettings, ToolInfo } from '@/../shared/types'
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize'
 
 interface ModelConfigProps {
@@ -36,6 +36,7 @@ interface ModelConfigProps {
 export default function CustomProviderSetting(props: ModelConfigProps) {
   const { settingsEdit, setSettingsEdit } = props
   const { t } = useTranslation()
+
   const customProvider = settingsEdit.customProviders.find(
     (provider) => provider.id === settingsEdit.selectedCustomProviderId
   )
@@ -43,8 +44,14 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
   const [mcpMode, setMcpMode] = React.useState('STDIO')
   const [pyFilePath, setPyFilePath] = useState('')
   const [mcpTools, setMcpTools] = useState<string[]>([])
+  const [toolDetails, setToolDetails] = useState<Record<string, ToolInfo[]>>({});
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
+  console.log("customsettingedit ===== "+JSON.stringify(settingsEdit))
+
+  
   const setCustomProvider = (update: CustomProvider) => {
+    console.log("providerssabbu======== "+JSON.stringify(update))
     setSettingsEdit({
       ...settingsEdit,
       customProviders: settingsEdit.customProviders.map((provider) =>
@@ -55,22 +62,27 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
 
   const handleExecutePy = async () => {
     console.log("pyFilePath == "+pyFilePath)
-    if (!pyFilePath) return;
+    if (!customProvider || !customProvider.host || !customProvider.id) return;
 
     const res = await fetch("http://localhost:8989/mcp-tools", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ path: pyFilePath })
+      body: JSON.stringify({ path: customProvider.host })
     });
     console.log("pyFilePath == data === "+res);
     const data = await res.json();
     console.log("pyFilePath == data ===", data);
     if (Array.isArray(data)) {
-      setMcpTools(data);
-    } else {
-      console.error("Unexpected response format:", data);
+      const toolMap = data.reduce((acc, tool) => {
+        acc[tool.name] = { arguments: tool.arguments };
+        return acc;
+      }, {});
+      setCustomProvider({
+        ...customProvider,
+        toolMap: toolMap,
+      });
     }
 
   };
@@ -84,12 +96,6 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
   }
   if (!customProvider) {
     return null
-  }
-  
-  const selectMCPMode = (customMode: string) => {
-    setMcpMode(customMode)
-    setPyFilePath('')
-    setMcpTools([])
   }
 
 
@@ -142,10 +148,10 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
           <FormControl>
             <InputLabel>MCP Mode</InputLabel>
             <Select
-              value={mcpMode}
+              value={customProvider.model}
               label="MCP Mode"
               size="small"
-              onChange={(e) => selectMCPMode(e.target.value)}
+              onChange={(e) => setCustomProvider({ ...customProvider, model: e.target.value as '' })}
             >
               <MenuItem value="STDIO">STDIO</MenuItem>
               <MenuItem value="SSE">SSE</MenuItem>
@@ -154,10 +160,12 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
 
           {mcpMode && (
             <>
-              <TextField
+              <TextFieldReset
                 label="Path"
-                value={pyFilePath}
-                onChange={(e) => setPyFilePath(e.target.value)}
+                value={customProvider.host}
+                onValueChange={(value) => {
+                  setCustomProvider({ ...customProvider, host: value })
+                }}
                 fullWidth
                 variant="outlined"
                 size="small"
@@ -168,19 +176,33 @@ export default function CustomProviderSetting(props: ModelConfigProps) {
                       onClick={() => handleExecutePy()}>
                   <DashboardCustomizeIcon /> Get Tools
               </Button>
-              <Typography variant="body2" className="text-sm">
+              <Typography variant="body2" component="div" className="text-sm">
                 Tools from script:
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                  {mcpTools.map((tool, idx) => (
+                  {Object.keys(customProvider.toolMap ?? {}).map((tool) => (
                     <Chip
                       key={tool}
                       label={tool}
                       color="primary"
                       variant="outlined"
                       style={{ fontWeight: 500 }}
+                      onClick={() => setSelectedTool(tool)}
                     />
                   ))}
                 </div>
+
+                {selectedTool && customProvider.toolMap?.[selectedTool]?.arguments && (
+                  <div style={{ marginTop: '16px' }}>
+                    <h4>Arguments for "{selectedTool}"</h4>
+                    <ul>
+                      {customProvider.toolMap[selectedTool].arguments.map((arg, idx) => (
+                        <li key={idx}>
+                          <strong>{arg.title}</strong>: {arg.type}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </Typography>
             </>
           )}

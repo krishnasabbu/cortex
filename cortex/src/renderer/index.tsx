@@ -16,10 +16,10 @@ async function initializeApp() {
   await import('./setup/load_polyfill')
 
   // Sentry 初始化
-  await import('./setup/sentry_init')
+  //await import('./setup/sentry_init')
 
   // GA4 初始化
-  await import('./setup/ga_init')
+  //await import('./setup/ga_init')
 
   // 引入保护代码
   await import('./setup/protect')

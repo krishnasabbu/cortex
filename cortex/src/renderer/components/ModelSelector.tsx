@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import * as atoms from '../stores/atoms'
 import MiniButton from './MiniButton'
 import StyledMenu from './StyledMenu'
+import { ModelOptionGroup } from 'src/shared/types'
 
 export function ChatModelSelector(props: {}) {
   const { t } = useTranslation()
@@ -30,6 +31,22 @@ export function ChatModelSelector(props: {}) {
   const modelSettingUtil = getModelSettingUtil(currentMergedSettings.aiProvider)
 
   console.log("modelSettingUtil ==== "+JSON.stringify(modelSettingUtil))
+
+  // // Build workflow group
+  // const workflowGroup: ModelOptionGroup = {
+  //   group_name: "Workflows",
+  //   options: currentMergedSettings.workflowProviders.map((wp) => ({
+  //     label: `${wp.name} (workflow)`,
+  //     value: `workflow:${wp.name}`
+  //   })),
+  //   collapsable: true
+  // };
+
+  // const workflowGroupExists = optionGroups.some(group => group.group_name === "Workflows");
+
+  // if (!workflowGroupExists && currentMergedSettings.workflowProviders?.length > 0) {
+  //   optionGroups.push(workflowGroup);
+  // }
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
   const onClickGroupName = (groupName: string) => {
@@ -118,7 +135,7 @@ export function ChatModelSelector(props: {}) {
               onClick={() => handleMenuItemSelect(option.value)}
               dense
             >
-              {labelHash[option.value] || option.label}
+              {option.label}
             </MenuItem>
           ))
         )

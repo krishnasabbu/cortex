@@ -79,7 +79,9 @@ export default class WebPlatform implements Platform {
   public async setStoreValue(key: string, value: any) {
     // 为什么序列化成 JSON？
     // 因为 IndexedDB 作为底层驱动时，可以直接存储对象，但是如果对象中包含函数或引用，将会直接报错
-    await store.setItem(key, JSON.stringify(value))
+    if(value != null) {
+      await store.setItem(key, JSON.stringify(value))
+    }
   }
   public async getStoreValue(key: string) {
     const json = await store.getItem<string>(key)

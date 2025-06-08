@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Preview</title>
+  <style>
+    body { margin: 0; padding: 1rem; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root">Waiting for content...</div>
+
+  <script>
+    window.addEventListener('message', (event) => {
+      const { type, code } = event.data || {};
+      if (type === 'html') {
+        document.getElementById('root').innerHTML = code || '';
+      }
+    });
+  </script>
+</body>
+</html>

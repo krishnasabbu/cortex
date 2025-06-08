@@ -11,7 +11,7 @@ import StopIcon from '@mui/icons-material/Stop'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote'
 import { useTranslation } from 'react-i18next'
-import { Message, SessionType } from '../../shared/types'
+import { Message, MessageTextPart, SessionType } from '../../shared/types'
 import ReplayIcon from '@mui/icons-material/Replay'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
 import { useAtomValue, useSetAtom } from 'jotai'
@@ -314,7 +314,15 @@ const Message: FC<Props> = (props) => {
     }
   }, [msg.contentParts, msg.reasoningContent, needArtifact])
 
-  let contentParts = msg.contentParts
+  
+  const filteredTextParts = msg.contentParts.filter(
+    (part): part is MessageTextPart => part.type === 'text' && typeof part.text === 'string'
+  );
+
+
+  let contentParts = filteredTextParts
+
+  console.log("conetntParts=======:::::::"+JSON.stringify(contentParts));
 
   const CollapseButton = (
     <span
@@ -546,6 +554,7 @@ const Message: FC<Props> = (props) => {
                   // 正常情况下，应该考虑优化 msg-content 的样式。现在这里是一个临时的偷懒方式。
                   getMessageText(msg).trim() === '' && <p></p>
                 }
+                
                 {contentParts && contentParts.length > 0 && (
                   <div>
                     {contentParts.map((item, index) =>

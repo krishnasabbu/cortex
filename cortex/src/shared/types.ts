@@ -104,7 +104,7 @@ export interface Message {
   firstTokenLatency?: number // AI 回答首字耗时(毫秒) - 从发送请求到接收到第一个字的时间间隔
 }
 
-export type SettingWindowTab = 'ai' | 'workflow-builder' | 'display' | 'chat' | 'advanced' | 'extension'
+export type SettingWindowTab = 'ai' | 'workflow-builder' | 'embedded-builder' | 'display' | 'chat' | 'advanced' | 'extension'
 
 export type ExportChatScope = 'all_threads' | 'current_thread'
 
@@ -316,6 +316,10 @@ export interface ModelSettings {
   selectedCustomProviderId?: string // 选中的自定义提供者 ID，仅当 aiProvider 为 custom 时有效
   customProviders: CustomProvider[]
   workflowProviders: WorkflowProvider[]
+  embeddings: Embeddings[]
+
+  embeddedSearch: boolean,
+  selectedEmbeddedIndex: string,
 
   temperature: number // 0-2
   topP: number // 0-1
@@ -337,6 +341,15 @@ export type ModelMeta = {
   }
 }
 
+export interface ToolArgument {
+  title: string;
+  type: string;
+}
+
+export interface ToolInfo {
+  arguments: ToolArgument[];
+}
+
 export interface CustomProvider {
   id: string
   name: string
@@ -348,6 +361,11 @@ export interface CustomProvider {
   modelOptions?: string[]
   useProxy?: boolean
   tools?: string[]
+  workflow?: boolean
+  consumerKey: string
+  consumerSecret: string
+  useCaseId: string
+  toolMap?: Record<string, ToolInfo>;
 }
 
 export interface WorkflowProvider {
@@ -363,6 +381,23 @@ export interface Workflow {
   originalProviderId: string
   systemPrompt: string
   selectedTool: string 
+}
+
+export interface Embeddings {
+  id: string
+  name: string
+  icon: string
+  path: string
+  index: string
+}
+
+export interface StepType {
+  stepId: string;
+  label: string;
+  api: string;
+  provider: CustomProvider | undefined;
+  systemPrompt?: string;
+  selectedTool?: string;
 }
 
 

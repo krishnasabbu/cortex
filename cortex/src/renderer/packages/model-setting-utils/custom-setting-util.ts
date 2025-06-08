@@ -45,14 +45,19 @@ export default class CustomModelSettingUtil extends BaseConfig implements ModelS
     //     })),
     //   },
     // ]
+
+    console.log("model settings =========== "+JSON.stringify(settings))
+
     return [
-          {
-            options: settings.customProviders.map((value) => ({
-              label: value.model,
-              value: value.model,
-            })),
-          },
-        ]
+      {
+        options: settings.customProviders
+          .filter((value) => value.api !== 'mcp')
+          .map((value) => ({
+            label: value.model,
+            value: value.model,
+          })),
+      },
+    ];
   }
 
   protected async listProviderModels(settings: ModelSettings) {

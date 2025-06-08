@@ -17,7 +17,7 @@ import { FilePen, FolderClosed, Globe, Image, Link, SendHorizontal, Settings2, U
 import React, { useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useTranslation } from 'react-i18next'
-import { createMessage, ShortcutSendValue } from '../../shared/types'
+import { createMessage, Embeddings, ShortcutSendValue } from '../../shared/types'
 import * as dom from '../hooks/dom'
 import icon from '../static/icon.png'
 import * as atoms from '../stores/atoms'
@@ -26,6 +26,10 @@ import { FileMiniCard, ImageMiniCard, LinkMiniCard } from './Attachments'
 import MiniButton from './MiniButton'
 import { ChatModelSelector } from './ModelSelector'
 import { Keys } from './Shortcut'
+import { settingsAtom } from '@/stores/atoms';
+import { Square } from 'lucide-react';
+
+const DefaultIcon = Square; // simple and neutral
 
 export default function InputBox() {
   const theme = useTheme()
@@ -47,6 +51,10 @@ export default function InputBox() {
   const [previousMessageQuickInputMark, setPreviousMessageQuickInputMark] = useState('')
   const pasteLongTextAsAFile = useAtomValue(atoms.pasteLongTextAsAFileAtom)
   const shortcuts = useAtomValue(atoms.shortcutsAtom)
+  const [globalSettings] = useAtom(settingsAtom);
+  const [settings, setSettings] = useAtom(settingsAtom);
+
+  console.log("globalSettings==== out"+JSON.stringify(globalSettings))
 
   const { min: minTextareaHeight, max: maxTextareaHeight } = useInputBoxHeight()
 
@@ -96,6 +104,8 @@ export default function InputBox() {
     if (pictureKeys.length > 0) {
       newMessage.contentParts.push(...pictureKeys.map((k) => ({ type: 'image' as const, storageKey: k })))
     }
+
+
     sessionActions.submitNewUserMessage({
       currentSessionId: currentSessionId,
       newUserMsg: newMessage,
@@ -215,6 +225,19 @@ export default function InputBox() {
       }
     }
   }
+
+  const handleEmbeddingSelect = (embedding: Embeddings) => {
+    setSettings((settings) => {
+      const isSelected = settings.selectedEmbeddedIndex === embedding.index;
+
+      return {
+        ...settings,
+        embeddedSearch: !isSelected,
+        selectedEmbeddedIndex: isSelected ? '' : embedding.index, // use '' instead of null
+      };
+    });
+  };
+
 
   const startNewThread = () => {
     sessionActions.startNewThread()
@@ -472,6 +495,37 @@ export default function InputBox() {
                 className={cn(webBrowsingMode && 'text-blue-500')}
               />
             </MiniButton>
+            
+            {globalSettings.embeddings?.map((embedding) => (
+              <MiniButton
+                key={embedding.id}
+                className={cn(
+                  'mr-1 sm:mr-2',
+                  settings.selectedEmbeddedIndex === embedding.index && 'text-blue-500'
+                )}
+                style={{
+                  color:
+                    settings.selectedEmbeddedIndex === embedding.index
+                      ? theme.palette.primary.main
+                      : theme.palette.text.primary,
+                }}
+                onClick={() => {
+                  handleEmbeddingSelect(embedding);
+                  dom.focusMessageInput();
+                }}
+                tooltipTitle={
+                  <div className="text-center inline-block">
+                    <span>{embedding.name}</span>
+                    <br />
+                    <span className="opacity-70 text-xs">{embedding.index}</span>
+                  </div>
+                }
+                tooltipPlacement="top"
+              >
+                <DefaultIcon size={22} />
+              </MiniButton>
+            ))}
+
             <MiniButton
               className="mr-1 sm:mr-2"
               style={{ color: theme.palette.text.primary }}

@@ -19,10 +19,11 @@ import { estimateTokensFromMessages } from '@/packages/token'
 import { router } from '@/router'
 import * as Sentry from '@sentry/react'
 import { getDefaultStore } from 'jotai'
-import { identity, pickBy, throttle } from 'lodash'
+import { identity, pickBy, result, throttle } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import * as defaults from '../../shared/defaults'
 import {
+  CustomProvider,
   ExportChatFormat,
   ExportChatScope,
   Message,
@@ -36,6 +37,8 @@ import {
   SessionMeta,
   SessionThread,
   Settings,
+  StepType,
+  WorkflowProvider,
   createMessage,
   pickPictureSettings,
   settings2SessionSettings,
@@ -51,7 +54,6 @@ import { cloneMessage, countMessageWords, getMessageText, mergeMessages } from '
 import * as settingActions from './settingActions'
 import { StorageKeyGenerator } from '@/storage/StoreStorage'
 import { toBeRemoved_getContextMessageCount } from '@/components/MaxContextMessageCountSlider'
-import { mode } from 'd3'
 
 /**
  * 创建一个新的会话
@@ -495,6 +497,7 @@ export async function submitNewUserMessage(params: {
   const { currentSessionId, newUserMsg, needGenerating, attachments, links } = params
   let { webBrowsing } = params
   // 如果存在附件，现在发送消息中构建空白的文件信息，用于占位，等待上传完成后再修改
+  console.log("contentinrequest ===== "+JSON.stringify(params))
   if (attachments && attachments.length > 0) {
     newUserMsg.files = attachments.map((f, ix) => ({
       id: ix.toString(),
@@ -542,130 +545,524 @@ export async function submitNewUserMessage(params: {
     insertMessage(currentSessionId, newAssistantMsg)
   }
 
-  try {
-    // 如果本次消息开启了联网问答，需要检查当前模型是否支持
-    // 桌面版&手机端总是支持联网问答，不再需要检查模型是否支持
-    if (webBrowsing && platform.type === 'web' && !isModelSupportToolUse(settings)) {
-      if (remoteConfig.setting_chatboxai_first) {
-        throw ChatboxAIAPIError.fromCodeName('model_not_support_web_browsing', 'model_not_support_web_browsing')
-      } else {
-        throw ChatboxAIAPIError.fromCodeName('model_not_support_web_browsing_2', 'model_not_support_web_browsing_2')
+  if(isWorkflow()) {
+    processWorkFlow(currentSessionId, newUserMsg, newAssistantMsg);
+  }else if(isEmbeddings()) {
+    processEmbeddings(currentSessionId, newUserMsg, newAssistantMsg);
+  }else {
+    try {
+        // 如果本次消息开启了联网问答，需要检查当前模型是否支持
+        // 桌面版&手机端总是支持联网问答，不再需要检查模型是否支持
+        if (webBrowsing && platform.type === 'web' && !isModelSupportToolUse(settings)) {
+          if (remoteConfig.setting_chatboxai_first) {
+            throw ChatboxAIAPIError.fromCodeName('model_not_support_web_browsing', 'model_not_support_web_browsing')
+          } else {
+            throw ChatboxAIAPIError.fromCodeName('model_not_support_web_browsing_2', 'model_not_support_web_browsing_2')
+          }
+        }
+
+        // 如果本次发送消息携带了附件，应该在这次发送中上传文件并构造文件信息(file uuid)
+        if (attachments && attachments.length > 0) {
+          if (isChatboxAI) {
+            // Chatbox AI 方案
+            const licenseKey = settingActions.getLicenseKey()
+            const newFiles: MessageFile[] = []
+            for (const attachment of attachments || []) {
+              const storageKey = await remote.uploadAndCreateUserFile(licenseKey || '', attachment)
+              newFiles.push({
+                id: storageKey,
+                name: attachment.name,
+                fileType: attachment.type,
+                storageKey,
+              })
+            }
+            modifyMessage(currentSessionId, { ...newUserMsg, files: newFiles }, false)
+          } else {
+            // 本地方案
+            const newFiles: MessageFile[] = []
+            const tokenLimitPerFile = Math.ceil((40 * 1000) / attachments.length)
+            for (const attachment of attachments) {
+              await new Promise((resolve) => setTimeout(resolve, 3000)) // 等待一段时间，方便显示提示
+              const result = await platform.parseFileLocally(attachment, { tokenLimit: tokenLimitPerFile })
+              if (!result.isSupported || !result.key) {
+                // 根据当前 IP，判断是否在错误中推荐 Chatbox AI
+                if (remoteConfig.setting_chatboxai_first) {
+                  throw ChatboxAIAPIError.fromCodeName('model_not_support_file', 'model_not_support_file')
+                } else {
+                  throw ChatboxAIAPIError.fromCodeName('model_not_support_file_2', 'model_not_support_file_2')
+                }
+              }
+              newFiles.push({
+                id: result.key,
+                name: attachment.name,
+                fileType: attachment.type,
+                storageKey: result.key,
+              })
+            }
+            modifyMessage(currentSessionId, { ...newUserMsg, files: newFiles }, false)
+          }
+        }
+        // 如果本次发送消息携带了链接，应该在这次发送中解析链接并构造链接信息(link uuid)
+        if (links && links.length > 0) {
+          if (isChatboxAI) {
+            // Chatbox AI 方案
+            const licenseKey = settingActions.getLicenseKey()
+            const newLinks: MessageLink[] = await Promise.all(
+              links.map(async (l) => {
+                const parsed = await remote.parseUserLinkPro({ licenseKey: licenseKey || '', url: l.url })
+                return {
+                  id: parsed.key,
+                  url: l.url,
+                  title: parsed.title,
+                  storageKey: parsed.storageKey,
+                }
+              })
+            )
+            modifyMessage(currentSessionId, { ...newUserMsg, links: newLinks }, false)
+          } else {
+            // 本地方案
+            const newLinks: MessageLink[] = []
+            for (const link of links) {
+              const { key, title } = await localParser.parseUrl(link.url)
+              newLinks.push({
+                id: key,
+                url: link.url,
+                title,
+                storageKey: key,
+              })
+              // 等待一段时间，方便显示提示
+              if (links.length === 1) {
+                await new Promise((resolve) => setTimeout(resolve, 5000))
+              } else {
+                await new Promise((resolve) => setTimeout(resolve, 2500))
+              }
+            }
+            modifyMessage(currentSessionId, { ...newUserMsg, links: newLinks }, false)
+          }
+        }
+      } catch (err: any) {
+        // 如果文件上传失败，一定会出现带有错误信息的回复消息
+        if (!(err instanceof Error)) {
+          err = new Error(`${err}`)
+        }
+        if (!(err instanceof ApiError || err instanceof NetworkError || err instanceof AIProviderNoImplementedPaintError)) {
+          Sentry.captureException(err) // unexpected error should be reported
+        }
+        let errorCode: number | undefined = undefined
+        if (err instanceof BaseError) {
+          errorCode = err.code
+        }
+        newAssistantMsg = {
+          ...newAssistantMsg,
+          generating: false,
+          cancel: undefined,
+          model: await getModelDisplayName(settings, 'chat'),
+          contentParts: [{ type: 'text', text: '' }],
+          errorCode,
+          error: `${err.message}`, // 这么写是为了避免类型问题
+          status: [],
+        }
+        if (needGenerating) {
+          modifyMessage(currentSessionId, newAssistantMsg)
+        } else {
+          insertMessage(currentSessionId, newAssistantMsg)
+        }
+        return // 文件上传失败，不再继续生成回复
       }
+      // 根据需要，生成这条回复消息
+      if (needGenerating) {
+        return generate(currentSessionId, newAssistantMsg, { webBrowsing })
+      }
+  } 
+}
+
+export function isWorkflow() {
+  const settings = getCurrentSessionMergedSettings()
+  const selectedCustomProviderId = settings.selectedCustomProviderId;
+  const customProviders = settings.customProviders;
+  const selectedProvider = customProviders.find(
+    (provider) => provider.id === selectedCustomProviderId
+  );
+  return selectedProvider?.workflow
+}
+
+export function isEmbeddings() {
+  const settings = getCurrentSessionMergedSettings();
+  return settings?.embeddedSearch;
+}
+
+export async function processEmbeddings(currentSessionId: string, message: Message, newAssistantMsg: Message) {
+  let result = '';
+  try {
+    const settings = getCurrentSessionMergedSettings();
+    const selectedEmbeddingsIndex = settings.selectedEmbeddedIndex;
+    const selectedCustomProviderId = settings.selectedCustomProviderId;
+    const customProviders = settings.customProviders;
+
+    // Step 1: Find the selected CustomProvider
+    const selectedProvider = customProviders.find(
+      (provider) => provider.id === selectedCustomProviderId
+    );
+
+    console.log("selectedProvider === "+JSON.stringify(selectedProvider))
+
+    if (!selectedProvider) {
+      console.warn("No matching custom provider found.");
+      return;
     }
 
-    // 如果本次发送消息携带了附件，应该在这次发送中上传文件并构造文件信息(file uuid)
-    if (attachments && attachments.length > 0) {
-      if (isChatboxAI) {
-        // Chatbox AI 方案
-        const licenseKey = settingActions.getLicenseKey()
-        const newFiles: MessageFile[] = []
-        for (const attachment of attachments || []) {
-          const storageKey = await remote.uploadAndCreateUserFile(licenseKey || '', attachment)
-          newFiles.push({
-            id: storageKey,
-            name: attachment.name,
-            fileType: attachment.type,
-            storageKey,
-          })
-        }
-        modifyMessage(currentSessionId, { ...newUserMsg, files: newFiles }, false)
-      } else {
-        // 本地方案
-        const newFiles: MessageFile[] = []
-        const tokenLimitPerFile = Math.ceil((40 * 1000) / attachments.length)
-        for (const attachment of attachments) {
-          await new Promise((resolve) => setTimeout(resolve, 3000)) // 等待一段时间，方便显示提示
-          const result = await platform.parseFileLocally(attachment, { tokenLimit: tokenLimitPerFile })
-          if (!result.isSupported || !result.key) {
-            // 根据当前 IP，判断是否在错误中推荐 Chatbox AI
-            if (remoteConfig.setting_chatboxai_first) {
-              throw ChatboxAIAPIError.fromCodeName('model_not_support_file', 'model_not_support_file')
-            } else {
-              throw ChatboxAIAPIError.fromCodeName('model_not_support_file_2', 'model_not_support_file_2')
-            }
-          }
-          newFiles.push({
-            id: result.key,
-            name: attachment.name,
-            fileType: attachment.type,
-            storageKey: result.key,
-          })
-        }
-        modifyMessage(currentSessionId, { ...newUserMsg, files: newFiles }, false)
-      }
-    }
-    // 如果本次发送消息携带了链接，应该在这次发送中解析链接并构造链接信息(link uuid)
-    if (links && links.length > 0) {
-      if (isChatboxAI) {
-        // Chatbox AI 方案
-        const licenseKey = settingActions.getLicenseKey()
-        const newLinks: MessageLink[] = await Promise.all(
-          links.map(async (l) => {
-            const parsed = await remote.parseUserLinkPro({ licenseKey: licenseKey || '', url: l.url })
-            return {
-              id: parsed.key,
-              url: l.url,
-              title: parsed.title,
-              storageKey: parsed.storageKey,
-            }
-          })
-        )
-        modifyMessage(currentSessionId, { ...newUserMsg, links: newLinks }, false)
-      } else {
-        // 本地方案
-        const newLinks: MessageLink[] = []
-        for (const link of links) {
-          const { key, title } = await localParser.parseUrl(link.url)
-          newLinks.push({
-            id: key,
-            url: link.url,
-            title,
-            storageKey: key,
-          })
-          // 等待一段时间，方便显示提示
-          if (links.length === 1) {
-            await new Promise((resolve) => setTimeout(resolve, 5000))
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, 2500))
-          }
-        }
-        modifyMessage(currentSessionId, { ...newUserMsg, links: newLinks }, false)
-      }
-    }
-  } catch (err: any) {
-    // 如果文件上传失败，一定会出现带有错误信息的回复消息
-    if (!(err instanceof Error)) {
-      err = new Error(`${err}`)
-    }
-    if (!(err instanceof ApiError || err instanceof NetworkError || err instanceof AIProviderNoImplementedPaintError)) {
-      Sentry.captureException(err) // unexpected error should be reported
-    }
-    let errorCode: number | undefined = undefined
-    if (err instanceof BaseError) {
-      errorCode = err.code
-    }
-    newAssistantMsg = {
-      ...newAssistantMsg,
-      generating: false,
-      cancel: undefined,
-      model: await getModelDisplayName(settings, 'chat'),
-      contentParts: [{ type: 'text', text: '' }],
-      errorCode,
-      error: `${err.message}`, // 这么写是为了避免类型问题
-      status: [],
-    }
-    if (needGenerating) {
-      modifyMessage(currentSessionId, newAssistantMsg)
-    } else {
-      insertMessage(currentSessionId, newAssistantMsg)
-    }
-    return // 文件上传失败，不再继续生成回复
+    let userQuestion: string = message.contentParts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join(' ');
+
+    const embeddingSearchResponse = await searchEmbeddings(userQuestion, selectedEmbeddingsIndex)
+
+    result = await callChatWithEmbeddingContext(
+      userQuestion,
+      embeddingSearchResponse.results,
+      selectedProvider,
+    );
+
+  }catch (error: any) {
+      result = `❌ failed: ${error.message ?? error}`;
   }
-  // 根据需要，生成这条回复消息
-  if (needGenerating) {
-    return generate(currentSessionId, newAssistantMsg, { webBrowsing })
+  
+
+  newAssistantMsg = {
+    ...newAssistantMsg,
+    generating: false,
+    cancel: undefined,
+    model: 'test',
+    contentParts: [{ type: 'text', text: result }],
+    errorCode: undefined,
+    error: '',
+    status: [],
+  };
+
+  modifyMessage(currentSessionId, newAssistantMsg);
+}
+
+export async function callChatWithEmbeddingContext(query: string, embeddingResults: any[], selectedProvider: CustomProvider) {
+  // Step 1: Extract and concatenate the text context
+  const contextChunks = embeddingResults.map((res) => `File: ${res.filename}\n${res.text}`);
+  const fullContext = contextChunks.join('\n\n');
+
+  // Step 2: Create final prompt
+  const prompt = `
+  You are a helpful assistant. Use the following context to answer the question.
+
+  Context:
+  ${fullContext}
+
+  Question: ${query}
+  Answer:
+    `;
+
+    const messages = [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: prompt }
+    ];
+
+    return await callLLMApi(selectedProvider, messages);
+}
+
+
+export function processWorkFlow(currentSessionId: string, newUserMsg: Message, newAssistantMsg: Message) {
+
+  const settings = getCurrentSessionMergedSettings();
+
+  const selectedCustomProviderId = settings.selectedCustomProviderId;
+  const customProviders = settings.customProviders;
+  const workflowProviders = settings.workflowProviders;
+
+  // Step 1: Find the selected CustomProvider
+  const selectedProvider = customProviders.find(
+    (provider) => provider.id === selectedCustomProviderId
+  );
+
+  console.log("selectedProvider === "+JSON.stringify(selectedProvider))
+
+  if (!selectedProvider) {
+    console.warn("No matching custom provider found.");
+    return;
+  }
+
+  // Step 2: Check if it's a workflow provider
+  if (!selectedProvider.workflow) {
+    console.log("Selected provider is not a workflow.");
+    return;
+  }
+
+  // Step 3: Find corresponding WorkflowProvider
+  const workflowProvider = workflowProviders.find(
+    (wp) => wp.id === selectedCustomProviderId
+  );
+
+  console.log("step132132 ==== "+JSON.stringify(workflowProvider))
+
+  if (!workflowProvider) {
+    console.warn("No matching workflow provider found.");
+    return;
+  }
+
+  let llmProvider: CustomProvider | undefined = undefined;
+
+  // Step 4: Iterate over workflow definition and fetch referenced providers
+  const stepProviders: StepType[] = workflowProvider.definition.map((step) => {
+    const stepProvider =
+      customProviders.find((provider) => provider.id === step.originalProviderId);
+
+    if (step.api !== 'mcp' && !llmProvider) {
+      llmProvider = stepProvider;
+    }
+
+    return {
+      stepId: step.id,
+      label: step.label,
+      api: step.api,
+      provider: step.api === 'history' ? llmProvider : stepProvider,
+      systemPrompt: step.systemPrompt || '',
+      selectedTool: step.selectedTool || '',
+    };
+  });
+
+  const prompts = `You are an AI assistant skilled in using Mermaid diagrams to explain concepts and answer questions. When responding to user queries, please follow these guidelines:
+
+Analyze the history of workflow steps below to determine if a diagram would be suitable for explanation or answering. Suitable scenarios for using diagrams include, but are not limited to: process descriptions, hierarchical structures, timelines, relationship maps, etc.
+If you decide to use a diagram, choose the most appropriate type of Mermaid diagram, such as Flowchart, Sequence Diagram, Class Diagram, State Diagram, Entity Relationship Diagram, User Journey, Gantt, Pie Chart, Quadrant Chart, Requirement Diagram, Gitgraph (Git) Diagram, C4 Diagram, Mindmaps, Timeline, Zenuml, Sankey, XYChart, Block Diagram, etc.
+Write the diagram code using Mermaid syntax, ensuring the syntax is correct. Place the diagram code between mermaid and .
+Provide textual explanations before and after the diagram, explaining the content and key points of the diagram.
+If the question is complex, use multiple diagrams to explain different aspects.
+Ensure the diagram is clear and concise, avoiding over-complication or information overload.
+Where appropriate, combine textual description and diagrams to comprehensively answer the question.
+If the history of workflow steps below is not suitable for a diagram, answer in a conventional manner without forcing the use of a diagram.
+Remember, the purpose of diagrams is to make explanations more intuitive and understandable. When using diagrams, always aim to enhance the clarity and comprehensiveness of your responses.`;
+
+    // Add one more step manually
+  stepProviders.push({
+    stepId: 'final-step', // use a unique id
+    label: 'History',
+    api: 'history', // or any api string you want
+    provider: llmProvider, // or any CustomProvider you want to assign
+    systemPrompt: prompts,
+    selectedTool: '', // optional string
+  });
+
+  executeSteps(currentSessionId, stepProviders, newUserMsg, newAssistantMsg);
+
+
+
+  console.log("Resolved Step Providers:", stepProviders);
+
+  return stepProviders;
+}
+
+export async function executeSteps(
+  currentSessionId: string,
+  steps: StepType[],
+  message: Message,
+  newAssistantMsg: Message
+) {
+  let previousResult: string = message.contentParts
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text)
+    .join(' ');
+
+  const historyLog: {
+    step: string;
+    type: 'llm' | 'mcp';
+    input: any;
+    output: any;
+    tool?: string;
+  }[] = [];
+
+  newAssistantMsg = {
+    ...newAssistantMsg,
+    generating: false,
+    cancel: undefined,
+    model: 'test',
+    contentParts: [{ type: 'text', text: 'Workflow is initiated... will update with each step' }],
+    errorCode: undefined,
+    error: '',
+    status: [],
+  };
+
+  modifyMessage(currentSessionId, newAssistantMsg);
+  console.log('Total objects:::: steps ' + JSON.stringify(steps));
+
+  for (const step of steps) {
+    if (!step.provider) continue;
+
+    let stepsMessage = createMessage('assistant', '');
+    stepsMessage.generating = true;
+    insertMessage(currentSessionId, stepsMessage);
+
+    const { provider, api, selectedTool, systemPrompt, label } = step;
+
+    let execution_model = ''
+
+    try {
+      if (api === 'mcp') {
+        const tool = selectedTool;
+        const toolConfig = tool ? provider.toolMap?.[tool] : undefined;
+
+        execution_model = provider.model
+
+        if (!tool || !toolConfig) {
+          console.warn(`Skipping MCP step "${label}", tool or config missing.`);
+          continue;
+        }
+
+        const inputPayload = JSON.parse(previousResult);
+        const payload = {
+          path: provider.host,
+          tool_name: tool,
+          arguments: inputPayload,
+        };
+
+        const res = await fetch(`http://localhost:8989/call`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const resultJson = await res.json();
+
+        if (!res.ok) {
+          throw new Error(resultJson?.error ?? 'MCP call failed');
+        }
+
+        previousResult = resultJson[0].text;
+
+        historyLog.push({
+          step: label,
+          type: 'mcp',
+          input: inputPayload,
+          output: previousResult,
+          tool,
+        });
+      } else {
+        // LLM Call
+        execution_model = provider.model;
+        const messages =
+          api === 'history'
+            ? [
+                { role: 'system', content: systemPrompt || 'You have access to the full history of previous steps.' },
+                ...historyLog.flatMap((entry) => [
+                  {
+                    role: 'system',
+                    content: `Step: ${entry.step}, Type: ${entry.type}${entry.tool ? `, Tool: ${entry.tool}` : ''}`,
+                  },
+                  { role: 'user', content: JSON.stringify(entry.input, null, 2) },
+                  {
+                    role: 'assistant',
+                    content: typeof entry.output === 'string' ? entry.output : JSON.stringify(entry.output, null, 2),
+                  },
+                ]),
+              ]
+            : [
+                { role: 'system', content: systemPrompt || '' },
+                { role: 'user', content: previousResult },
+              ];
+
+        const llmOutput = await callLLMApi(provider, messages);
+        previousResult = llmOutput;
+        
+
+        historyLog.push({
+          step: label,
+          type: 'llm',
+          input: messages,
+          output: llmOutput,
+        });
+      }
+
+      consoleMessage(currentSessionId, previousResult, stepsMessage, execution_model);
+    } catch (error: any) {
+      const failMsg = `❌ Step "${label}" failed: ${error.message ?? error}`;
+      consoleMessage(currentSessionId, failMsg, stepsMessage, execution_model);
+      return failMsg;
+    }
+  }
+
+  return previousResult;
+}
+
+
+export async function searchEmbeddings(query: string, indexName: string) {
+  try {
+    const response = await fetch('http://127.0.0.1:8000/v1/embedding-store/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        index_name: indexName,
+      }),
+    });
+
+    if (!response.ok) throw new Error('Search failed');
+
+    const result = await response.json();
+    console.log('Search result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error during embedding search:', error);
+    return null;
   }
 }
+
+
+export async function callLLMApi(provider: CustomProvider | null, messages: any): Promise<string> {
+  if (!provider) throw new Error('LLM provider missing');
+
+  const payload = {
+    model: provider.model,
+    messages,
+  };
+
+  const res = await fetch(`${provider.host}${provider.path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(provider.key && { Authorization: `Bearer ${provider.key}` }),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseJson = await res.json();
+
+  if (!res.ok) {
+    const errMsg = responseJson.choices?.[0]?.message?.content ?? JSON.stringify(responseJson);
+    console.log("errMSG ==== "+errMsg)
+    throw new Error(errMsg);
+  }
+
+  return responseJson.choices?.[0]?.message?.content ?? JSON.stringify(responseJson);
+}
+
+
+export async function consoleMessage(currentSessionId: string, message: string, 
+  newAssistantMsg: Message, execution_model: string) {
+  console.log("execution_model: "+execution_model);
+  newAssistantMsg = {
+    ...newAssistantMsg,
+    generating: false,
+    cancel: undefined,
+    model: execution_model,
+    contentParts: message
+      ? [{ type: 'text', text: message }]
+      : [{ type: 'text', text: '⚠️ Unexpected error occurred.' }],
+    errorCode: undefined,
+    error: '',
+    status: [],
+  };
+
+  modifyMessage(currentSessionId, newAssistantMsg);
+}
+
 
 /**
  * 执行消息生成，会修改消息的状态
@@ -727,11 +1124,13 @@ export async function generate(sessionId: string, targetMsg: Message, options?: 
 
   try {
     const model = getModel(settings, configs)
-    console.log("model === "+ JSON.stringify(model))
+    console.log("sabbu === sabbu ===  "+ JSON.stringify(model))
+    console.log("sabbu === sabbu ===  "+ session.type)
     switch (session.type) {
       // 对话消息生成
       case 'chat':
       case undefined:
+        console.log("sabbu === sabbu ===  "+ session.type)
         const startTime = Date.now()
         let firstTokenLatency: number | undefined = undefined
         const promptMsgs = await genMessageContext(settings, messages.slice(0, targetMsgIx))

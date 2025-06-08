@@ -20,6 +20,8 @@ import ExtensionIcon from '@mui/icons-material/Extension'
 import { useBlocker } from '@tanstack/react-router'
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
 import WorkflowBuilderTab from './WorkflowBuilderTab'
+import EmbeddingBuilder from './EmbeddingBuilder'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 // import { resetTokenConfig } from '../../packages/token_config'
 
 export default function SettingWindow(props: {}) {
@@ -95,7 +97,7 @@ export default function SettingWindow(props: {}) {
         >
           <Tabs
             value={currentTab}
-            className="max-w-4xl mx-auto"
+            className="max-w-7xl mx-auto"
             onChange={(_, value) => setCurrentTab(value)}
             variant="scrollable"
             scrollButtons
@@ -116,6 +118,15 @@ export default function SettingWindow(props: {}) {
                 <span className="inline-flex justify-center items-center">
                   <BuildOutlinedIcon fontSize="small" style={{ marginRight: 5 }} />
                   <span>{t('workflow_builder')}</span>
+                </span>
+              }
+            />
+            <Tab
+              value="embedded-builder"
+              label={
+                <span className="inline-flex justify-center items-center">
+                  <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 5 }} />
+                  <span>{t('embedded_builder')}</span>
                 </span>
               }
             />
@@ -159,7 +170,7 @@ export default function SettingWindow(props: {}) {
           </Tabs>
         </Box>
 
-        <Box className="max-w-4xl mx-auto px-5 pb-5">
+        <Box className="max-w-7xl mx-auto px-5 pb-5">
           {currentTab === 'ai' && (
             <ModelSettingTab
               settingsEdit={settingsEdit}
@@ -171,6 +182,16 @@ export default function SettingWindow(props: {}) {
 
           {currentTab === 'workflow-builder' && (
             <WorkflowBuilderTab
+              settingsEdit={settingsEdit}
+              setSettingsEdit={(updated) => {
+                setSettingsEdit({ ...settingsEdit, ...updated })
+              }}
+              changeModeWithPreview={changeThemeWithPreview}
+            />
+          )}
+
+          {currentTab === 'embedded-builder' && (
+            <EmbeddingBuilder
               settingsEdit={settingsEdit}
               setSettingsEdit={(updated) => {
                 setSettingsEdit({ ...settingsEdit, ...updated })
@@ -218,7 +239,7 @@ export default function SettingWindow(props: {}) {
           )}
         </Box>
 
-        <Box className="max-w-4xl mx-auto" sx={{ padding: '0 20px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+        <Box className="max-w-7xl mx-auto" sx={{ padding: '0 20px 20px', display: 'flex', justifyContent: 'flex-end' }}>
           {/* <Button onClick={onCancel}>{t('cancel')}</Button> */}
           <Button
             variant="contained"

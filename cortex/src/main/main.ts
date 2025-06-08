@@ -11,7 +11,6 @@
 import os from 'os'
 import path from 'path'
 import { app, BrowserWindow, globalShortcut, shell, ipcMain, nativeTheme, session, Tray, Menu } from 'electron'
-import log from 'electron-log/main'
 import MenuBuilder from './menu'
 import { resolveHtmlPath } from './util'
 import Locale from './locales'
@@ -163,28 +162,22 @@ function createTray() {
 
 function ensureTray() {
   if (tray) {
-    log.info('tray: already exists')
     return tray
   }
   try {
     createTray()
-    log.info('tray: created')
   } catch (e) {
-    log.error('tray: failed to create', e)
   }
 }
 
 function destroyTray() {
   if (!tray) {
-    log.info('tray: skip destroy because it does not exist')
     return
   }
   try {
     tray.destroy()
     tray = null
-    log.info('tray: destroyed')
   } catch (e) {
-    log.error('tray: failed to destroy', e)
   }
 }
 
@@ -395,7 +388,6 @@ if (!gotTheLock) {
         try {
           unregisterShortcuts()
         } catch (e) {
-          log.error('shortcut: failed to unregister', e)
         }
         destroyTray()
       })
@@ -506,19 +498,15 @@ ipcMain.handle('appLog', (event, dataJson) => {
   data.message = 'APP_LOG: ' + data.message
   switch (data.level) {
     case 'info':
-      log.info(data.message)
       break
     case 'error':
-      log.error(data.message)
       break
     default:
-      log.info(data.message)
   }
 })
 
 ipcMain.handle('ensureAutoLaunch', (event, enable: boolean) => {
   if (isDebug) {
-    log.info('ensureAutoLaunch: skip by debug mode')
     return
   }
   return autoLauncher.ensure(enable)
@@ -562,7 +550,6 @@ ipcMain.handle('setFullscreen', (event, enable: boolean) => {
 })
 
 ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall()
 })
 
 ipcMain.handle('switch-theme', (event, theme: 'dark' | 'light') => {

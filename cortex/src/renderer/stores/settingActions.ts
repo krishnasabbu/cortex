@@ -118,6 +118,9 @@ export function createCustomProvider() {
     path: '/chat/completions',
     key: '',
     model: 'gpt-4o',
+    consumerKey: '',
+    consumerSecret: '',
+    useCaseId: ''
   }
   const store = getDefaultStore()
   store.set(atoms.settingsAtom, (settings) => ({

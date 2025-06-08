@@ -32,20 +32,29 @@ import {
   FormControl,
   InputLabel,
   Divider,
+  SelectChangeEvent,
 } from '@mui/material';
 
 import { Delete as DeleteIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { Settings, Theme, Workflow, WorkflowProvider } from '../../../shared/types';
+import { CustomProvider, Settings, Theme, Workflow, WorkflowProvider } from '../../../shared/types';
 import { settingsAtom } from '@/stores/atoms';
 import { useAtom } from 'jotai';
 import { useTheme } from '@mui/material/styles';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize'
+import { v4 as uuidv4 } from 'uuid';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
 const generateUniqueId = (() => {
   let count = 0;
   return () => `step-${++count}`;
 })();
+
+const generateUniqueUUId = (() => {
+  return () => uuidv4();
+})();
+
+
 
 function DraggableBox({ provider }: { provider: any }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -53,10 +62,15 @@ function DraggableBox({ provider }: { provider: any }) {
     data: { provider }, // <-- fix: wrap provider inside data object for drag event
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: transform ? CSS.Translate.toString(transform) : undefined,
     cursor: 'grab',
-    userSelect: 'none',
+    userSelect: 'none', // this is safe now
+    padding: '8px',
+    border: '1px solid #999',
+    borderRadius: 4,
+    marginBottom: 8,
+    background: 'transparent',
   };
 
   return (
@@ -64,14 +78,7 @@ function DraggableBox({ provider }: { provider: any }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={{
-        ...style,
-        padding: '8px',
-        border: '1px solid #999',
-        borderRadius: 4,
-        marginBottom: 8,
-        background: 'transparent',
-      }}
+      style={style}
     >
       {provider.label}
     </div>
@@ -102,14 +109,11 @@ function SortableWorkflowItem({
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
   };
 
   return (
     <Box
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
       sx={{
         ...style,
         p: 1,
@@ -122,9 +126,20 @@ function SortableWorkflowItem({
         alignItems: 'center',
       }}
     >
-      <span>
-        Step {index + 1}: {step.label}
-      </span>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Drag Handle Only */}
+        <Box
+          {...attributes}
+          {...listeners}
+          sx={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}
+        >
+          <DragIndicatorIcon fontSize="small" />
+        </Box>
+        <span>
+          Step {index + 1}: {step.label}
+        </span>
+      </Box>
+
       <Box>
         <IconButton size="small" color="primary" onClick={() => onOpenSettings(step)}>
           <SettingsIcon />
@@ -143,7 +158,7 @@ function CanvasDropZone({ children }: { children: React.ReactNode }) {
   return (
     <Box
       ref={setNodeRef}
-      height="400px"
+      height="600px"
       border="2px dashed #aaa"
       borderRadius={2}
       p={2}
@@ -171,7 +186,9 @@ export default function WorkflowBuilderTab(props: {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const availableProviders = settingsEdit.customProviders.map((provider) => ({
+  const availableProviders = settingsEdit.customProviders
+  .filter((provider) => !provider.workflow)
+  .map((provider) => ({
     id: provider.id,
     label: provider.name,
     api: provider.api,
@@ -181,7 +198,7 @@ export default function WorkflowBuilderTab(props: {
   const [activeStep, setActiveStep] = useState<any | null>(null);
   const [systemPrompt, setSystemPrompt] = useState('');
   const [selectedTool, setSelectedTool] = useState('');
-  const [workflowName, setWorkflowName] = useState(settingsEdit.name || '');
+  const [toolArguments, setToolArguments] = useState<any[]>([]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -190,15 +207,21 @@ export default function WorkflowBuilderTab(props: {
     // Correctly access draggable data:
     const draggedProvider = active.data?.current?.provider;
 
+    console.log("draggedProvider === "+JSON.stringify(draggedProvider));
+    console.log("over.id === "+JSON.stringify(over.id));
+
     // Dropped on canvas: add new step
     if (over.id === 'canvas-drop-zone' && draggedProvider) {
+      console.log("over.id === "+JSON.stringify(over.id));
       const newStep = {
         ...draggedProvider,
-        id: generateUniqueId(),
+        id: generateUniqueUUId(),
         originalProviderId: draggedProvider.id,
         api: draggedProvider.api,
-        config: {},
+        systemPrompt: '',
+        selectedTool: '',
       };
+      console.log("over.id === "+JSON.stringify(newStep));
       setWorkflow((prev) => [...prev, newStep]);
       return;
     }
@@ -220,14 +243,10 @@ export default function WorkflowBuilderTab(props: {
   };
 
   const onOpenSettings = (step: any) => {
+    console.log("step=== step === "+JSON.stringify(step));
     setActiveStep(step);
-    if (step.config) {
-      setSystemPrompt(step.config.systemPrompt || '');
-      setSelectedTool(step.config.selectedTool || '');
-    } else {
-      setSystemPrompt('');
-      setSelectedTool('');
-    }
+    setSystemPrompt(step.systemPrompt || '');
+    setSelectedTool(step.selectedTool || '');
     setSettingsOpen(true);
   };
 
@@ -238,10 +257,8 @@ export default function WorkflowBuilderTab(props: {
         if (step.id === activeStep.id) {
           return {
             ...step,
-            config: {
-              systemPrompt: systemPrompt.trim(),
-              selectedTool: selectedTool,
-            },
+            systemPrompt: systemPrompt.trim(),
+            selectedTool: selectedTool,
           };
         }
         return step;
@@ -260,46 +277,97 @@ export default function WorkflowBuilderTab(props: {
     setSelectedTool('');
   };
 
+  const handleToolChange = (e: SelectChangeEvent<string>) => {
+    const toolName = e.target.value;
+    setSelectedTool(toolName);
+
+    const originalProviderId = activeStep.originalProviderId || activeStep.id;
+    const foundProvider = settingsEdit.customProviders.find(p => p.id === originalProviderId);
+
+    if (!foundProvider || !foundProvider.toolMap) {
+      setToolArguments([]);
+      return;
+    }
+
+    const args = foundProvider.toolMap[toolName]?.arguments ?? [];
+    setToolArguments(args);
+  };
+
   const toolsForActiveStep = (() => {
     if (!activeStep) return [];
     const originalProviderId = activeStep.originalProviderId || activeStep.id;
     const foundProvider = settingsEdit.customProviders.find((p) => p.id === originalProviderId);
-    return foundProvider?.tools || ['test'];
+    
+    if (foundProvider?.toolMap) {
+      return Object.keys(foundProvider.toolMap);
+    }
+
+    return [];
   })();
 
   const isAIProvider = (() => {
+    console.log("activeStep === "+JSON.stringify(activeStep))
     if (!activeStep) return false;
+    if (activeStep.label === 'History') return true;
     const originalProviderId = activeStep.originalProviderId || activeStep.id;
     const foundProvider = settingsEdit.customProviders.find((p) => p.id === originalProviderId);
-    return foundProvider?.api === 'openai';
+    return foundProvider?.api === 'openai' || foundProvider?.api === 'tachyon';
   })();
 
   const handleSave = () => {
 
+    console.log("getting it"+JSON.stringify(workflowProvider))
+
     if (!workflowProvider) return;
+
+    console.log("getting it 123")
 
     const updatedProvider: WorkflowProvider = {
         ...workflowProvider,
         definition: workflow,
     };
 
-    setWorkflowProviders((prev) => {
-        const existingIndex = prev.findIndex(p => p.id === updatedProvider.id);
-        if (existingIndex !== -1) {
-        // Update existing
-        const copy = [...prev];
-        copy[existingIndex] = updatedProvider;
-        return copy;
-        } else {
-        // Add new
-        return [...prev, updatedProvider];
-        }
-    });
+    // Create new CustomProvider based on workflowProvider
+  const newCustomProvider: CustomProvider = {
+    id: workflowProvider.id,
+    name: workflowProvider.name,
+    api: '', // fill required fields or default
+    host: '',
+    path: '',
+    key: '',
+    model: workflowProvider.name,
+    consumerKey: '',
+    consumerSecret: '',
+    useCaseId: '',
+    workflow: true, // mark as workflow provider
+    // add any other required fields or defaults here
+  };
 
-    setSettingsEdit({
-        ...settingsEdit,
-        workflowProviders: workflowProviders
-    })
+
+  const updatedCustomProviders = [
+    ...(settingsEdit.customProviders || []),
+    newCustomProvider,
+  ];
+
+  const existingIndex = (settingsEdit.workflowProviders || []).findIndex(
+    (p) => p.id === updatedProvider.id
+  );
+  const updatedWorkflowProviders =
+    existingIndex !== -1
+      ? settingsEdit.workflowProviders.map((p, i) =>
+          i === existingIndex ? updatedProvider : p
+        )
+      : [...(settingsEdit.workflowProviders || []), updatedProvider];
+
+  setSettingsEdit({
+    ...settingsEdit,
+    customProviders: updatedCustomProviders,
+    workflowProviders: updatedWorkflowProviders,
+  });
+
+  setWorkflowProviders(updatedWorkflowProviders);
+
+    console.log("new settingsEdit === ", JSON.stringify(settingsEdit.workflowProviders));
 
     // Optional: Reset for next creation
     setWorkflow([]);
@@ -308,13 +376,65 @@ export default function WorkflowBuilderTab(props: {
 
   const handleWorkflowNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value
-    setWorkflowProvider((prev) => prev ? { ...prev, name: newName } : { id: generateUniqueId(), name: newName, definition: [] });
+    setWorkflowProvider((prev) => prev ? { ...prev, name: newName } : { id: generateUniqueUUId(), name: newName, definition: [] });
   };
 
   const handleSelectWorkflowProvider = (provider: WorkflowProvider) => {
     setWorkflowProvider(provider);
     setWorkflow(provider.definition || []);
   };
+
+  const exampleValue = (type: string) => {
+    switch (type) {
+      case "integer":
+      case "number":
+        return 1;
+      case "string":
+        return "example";
+      case "boolean":
+        return true;
+      default:
+        return null;
+    }
+  };
+
+  const ToolArgumentsExample = () => {
+    // Build example JSON dynamically
+    const exampleRequest = toolArguments.reduce((acc, arg) => {
+      acc[arg.title] = exampleValue(arg.type);
+      return acc;
+    }, {} as Record<string, any>);
+
+    return (
+      <div style={{ marginTop: "16px" }}>
+        <h4>Arguments:</h4>
+        {toolArguments.map((arg, index) => (
+          <div key={index}>
+            <strong>{arg.title}</strong>: {arg.type}
+          </div>
+        ))}
+        {
+          toolArguments && (
+            <>
+              <h4 style={{ marginTop: "24px" }}>Example Request JSON:</h4>
+              <pre
+                style={{
+                  backgroundColor: theme.palette.background.paper,
+                  color: theme.palette.text.primary,
+                  padding: "12px",
+                  borderRadius: "4px",
+                  overflowX: "auto",
+                }}
+              >
+                {JSON.stringify(exampleRequest, null, 2)}
+              </pre>
+            </>
+          )
+        }
+        
+      </div>
+    );
+  }
 
   return (
     <>
@@ -349,6 +469,16 @@ export default function WorkflowBuilderTab(props: {
                 {availableProviders.map((p) => (
                     <DraggableBox key={p.id} provider={p} />
                 ))}
+                {/* Clone any non-MCP provider and make it a history tool */}
+                {(() => {
+                  const historyProvider = {
+                    id: "step",
+                    label: `History`,
+                    api: "history",
+                  };
+
+                  return <DraggableBox key={historyProvider.id} provider={historyProvider} />;
+                })()}
             </Box>
 
             <Box flex={1} pl={2}>
@@ -379,7 +509,7 @@ export default function WorkflowBuilderTab(props: {
               </CanvasDropZone>
 
               <Box mt={2} textAlign="right">
-                <Button variant="contained" color="primary" onClick={handleSave} disabled={!workflowName || workflow.length === 0}>
+                <Button variant="contained" color="primary" onClick={handleSave}>
                   Save Workflow
                 </Button>
               </Box>
@@ -405,7 +535,7 @@ export default function WorkflowBuilderTab(props: {
                 <Select
                     labelId="tool-select-label"
                     value={selectedTool}
-                    onChange={(e) => setSelectedTool(e.target.value)}
+                    onChange={handleToolChange}
                 >
                     {toolsForActiveStep.map((tool) => (
                     <MenuItem key={tool} value={tool}>
@@ -413,6 +543,9 @@ export default function WorkflowBuilderTab(props: {
                     </MenuItem>
                     ))}
                 </Select>
+                <div style={{ marginTop: '16px' }}>
+                  {ToolArgumentsExample()}
+                </div>
                 </FormControl>
             )}
             </DialogContent>

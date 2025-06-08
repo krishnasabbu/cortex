@@ -24,6 +24,7 @@ interface Options {
   useProxy?: boolean
   temperature?: number
   topP?: number
+  
 }
 
 type FetchFunction = typeof globalThis.fetch
@@ -40,23 +41,25 @@ export default class CustomOpenAI extends AbstractAISDKModel {
   }
 
   protected getCallSettings() {
+    console.log("calling cutom options"+JSON.stringify(this.options))
     return {
       temperature: this.options.temperature,
       topP: this.options.topP,
+      customP: this.options.topP,
     }
   }
 
   private getProvider(fetchFunction?: FetchFunction) {
+    console.log("calling cutom options"+JSON.stringify(this.options))
     return createOpenAICompatible({
       name: this.name,
       apiKey: this.options.apiKey,
       baseURL: this.options.apiHost,
       fetch: fetchFunction,
-      headers: this.options.apiHost.includes('openrouter.ai')
-        ? {
+      headers: {
             'X-Title': 'Cortex',
-          }
-        : undefined,
+            'X-Custom-Krishna': 'Cortex',
+          },
     })
   }
 
