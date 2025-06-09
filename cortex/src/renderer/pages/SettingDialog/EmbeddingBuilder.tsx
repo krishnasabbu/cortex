@@ -11,6 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { Settings, Theme, Embeddings } from 'src/shared/types';
+import { useTheme } from '@mui/material/styles';
 
 export default function EmbeddingBuilder(props: {
   settingsEdit: Settings;
@@ -19,6 +20,7 @@ export default function EmbeddingBuilder(props: {
 }) {
   const { settingsEdit, setSettingsEdit } = props;
   const embeddings = settingsEdit.embeddings || [];
+  const theme = useTheme();
 
   const [selectedEmbedding, setSelectedEmbedding] = useState<Embeddings | null>(null);
 
@@ -67,15 +69,12 @@ export default function EmbeddingBuilder(props: {
 
   return (
     <Box p={2}>
-      <Typography variant="h5" gutterBottom>
-        Embedding Builder
-      </Typography>
 
-      <Box display="flex" height="600px">
+      <Box display="flex" height="400px">
         {/* Left Sidebar */}
-        <Box width="30%" pr={2} borderRight="1px solid #ccc">
+        <Box width="20%" pr={2} borderRight={`1px solid ${theme.palette.divider}`}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Embeddings</Typography>
+            <Typography variant="h6">Embedding Builder</Typography>
             <IconButton
               color="primary"
               onClick={() =>

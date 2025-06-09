@@ -453,12 +453,16 @@ export default function WorkflowBuilderTab(props: {
                 </Typography>
 
                 {workflowProviders.map((p) => (
-                    <Button key={p.id} 
-                            variant="contained" 
-                            color="primary"
-                            onClick={() => handleSelectWorkflowProvider(p)}>
-                        <DashboardCustomizeIcon /> {p.name}
+                  <Box key={p.id} mb={2}>
+                    <Button
+                      variant="contained"
+                      className="w-full gap-2"
+                      size="large"
+                      onClick={() => handleSelectWorkflowProvider(p)}
+                    >
+                      <DashboardCustomizeIcon /> {p.name}
                     </Button>
+                  </Box>
                 ))}
 
                 <Divider sx={{ my: 0.5 }} />
