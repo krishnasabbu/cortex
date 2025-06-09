@@ -1,1 +1,23 @@
-test
+const formattedHistory = historyLog
+  .map((entry, i) => {
+    const input = JSON.stringify(entry.input, null, 2);
+    const output = typeof entry.output === 'string' ? entry.output : JSON.stringify(entry.output, null, 2);
+    return `Step ${i + 1}:\nType: ${entry.type}${entry.tool ? `\nTool: ${entry.tool}` : ''}\nUser:\n${input}\nAssistant:\n${output}`;
+  })
+  .join('\n\n');
+
+const messages = [
+  {
+    role: 'system',
+    content: `You are the expert in identifying the required items by going through existing conversation. Below are the existing conversations. Please go through and identify the required fields and send the response by filling the below JSON. I need only JSON response to send to next step automatically - I don't need any explanation - Please send only JSON response by filling the below.
+
+{
+  "jiraId": "?",
+  "comment": "?"
+}`,
+  },
+  {
+    role: 'user',
+    content: `Conversation history:\n\n${formattedHistory}`,
+  },
+];
