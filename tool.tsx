@@ -55,3 +55,60 @@ const generateJson = () => {
                     </Accordion>
                   ))}
                 </Box>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const mimeTypes: Record<string, string> = {
+  "txt": "text/plain",
+  "pdf": "application/pdf",
+  "doc": "application/msword",
+  "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "xls": "application/vnd.ms-excel",
+  "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "png": "image/png",
+  "jpg": "image/jpeg",
+  "jpeg": "image/jpeg",
+  "gif": "image/gif",
+  "csv": "text/csv",
+  "json": "application/json",
+  "zip": "application/zip",
+  // Add more as needed
+};
+
+
+    function downloadFromBase64(base64: string, fileName = "download.txt", mimeType = "text/plain") {
+  // Convert base64 to raw binary
+  const byteCharacters = atob(base64);
+  const byteNumbers = Array.from(byteCharacters, c => c.charCodeAt(0));
+  const byteArray = new Uint8Array(byteNumbers);
+
+  // Create blob and URL
+  const blob = new Blob([byteArray], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+
+  // Create and trigger download link
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+
+  // Optional: revoke the object URL
+  URL.revokeObjectURL(url);
+}
+
+
+<button onClick={() => downloadFromBase64(resource.blob, "report.pdf", "application/pdf")}>
+  Download Attachment
+</button>
+
