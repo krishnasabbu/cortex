@@ -16,7 +16,7 @@ def evaluate_conditions(html_lines):
     for line in html_lines:
         try:
             decoded = html.unescape(line)
-            match = re.search(r'<(\w+)>\s*(=|!=|<=|>=|<|>)\s*"([^"]+)"', decoded)
+            match = re.search(r'<(\w+)>\s*(=|!=|<=|>=|<|>)\s*"?([^"<>\s]+)"?', decoded)
             if not match:
                 continue
 
