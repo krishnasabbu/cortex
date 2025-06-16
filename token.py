@@ -26,3 +26,54 @@ def make_authenticated_request():
     token = token_manager.get_token()
     print(f"Using token: {token}")
     # Add the token to your request headers here
+
+
+import html
+import re
+
+import html
+import re
+from itertools import product
+from collections import defaultdict
+
+import html
+import re
+from itertools import product
+from collections import defaultdict
+
+
+def extract_equal_conditions(html_lines):
+    value_options = defaultdict(set)
+
+    for line in html_lines:
+        decoded = html.unescape(line)
+        # Match key, operator, value
+        match = re.search(r'<(\w+)>\s*(=|!=|<=|>=|<|>)\s*"([^"]+)"', decoded)
+        if match:
+            key, operator, value = match.groups()
+            if operator == '=':
+                value_options[key].add(value)
+            else:
+                # You can collect or log these if needed
+                pass  # e.g., print(f"Skipping {operator} on {key}")
+
+    # Cartesian product of all key = value pairs
+    keys = list(value_options.keys())
+    value_combinations = product(*(value_options[key] for key in keys))
+
+    return [dict(zip(keys, combo)) for combo in value_combinations]
+
+
+html_lines = [
+    '<p>&lt;tran_code&gt; = &quot;100&quot;</p>',
+    '<p>&lt;tran_code&gt; = &quot;101&quot;</p>',
+    '<p>&lt;status&gt; = &quot;SUCCESS&quot;</p>',
+    '<p>&lt;status&gt; = &quot;FAILURE&quot;</p>',
+    '<p>&lt;amount&gt; >= &quot;1000&quot;</p>',   # Skipped
+    '<p>&lt;amount&gt; <= &quot;5000&quot;</p>'   # Skipped
+]
+
+output = extract_equal_conditions(html_lines)
+print(output)
+
+
