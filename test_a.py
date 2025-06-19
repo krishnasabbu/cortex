@@ -9,7 +9,8 @@ html_lines = [
     '<p>&lt;field3&gt; &gt;= &quot;10&quot;</p>',
     '<p>&lt;field3&gt; &lt;= &quot;20&quot;</p>',
     '<p>&lt;timeField&gt; &gt;= &quot;00:00:00&quot;</p>',
-    '<p>&lt;timeField&gt; &lt;= &quot;11:59:59 AM&quot;</p>'
+    '<p>&lt;timeField&gt; &lt;= &quot;11:59:59 AM&quot;</p>',
+    '<p>&lt;field3&gt; != &quot;15&quot;</p>'  # test numeric != case
 ]
 
 def parse_time(value):
@@ -34,7 +35,7 @@ for line in html_lines:
         field, op, value = match.groups()
         field_conditions.setdefault(field, []).append((op, value))
 
-output = []
+output_set = set()
 
 for field, conditions in field_conditions.items():
     equals = []
@@ -47,20 +48,24 @@ for field, conditions in field_conditions.items():
         elif op == "!=":
             not_equals.append(val)
         else:
-            ranges[op] = val  # store raw for now
+            ranges[op] = val
 
     # Add = values
     for val in equals:
-        output.append({field: val})
+        output_set.add(f"{field}:{val}")
 
-    # Add != values
+    # Add != values (handle intelligently)
     for val in not_equals:
-        output.append({field: f"not_{val}"})
+        try:
+            numeric_val = float(val)
+            alt_val = str(int(numeric_val + 1))  # Example logic
+        except ValueError:
+            alt_val = f"not_{val}"
+        output_set.add(f"{field}:{alt_val}")
 
     # Handle ranges
     if ranges:
         try:
-            # Try numeric range first
             min_val = float(ranges.get(">=", ranges.get(">", float("-inf"))))
             max_val = float(ranges.get("<=", ranges.get("<", float("inf"))))
             if min_val != float("-inf") and max_val != float("inf"):
@@ -71,12 +76,10 @@ for field, conditions in field_conditions.items():
                 val = str(int(max_val - 5))
             else:
                 val = "unknown"
-            output.append({field: val})
+            output_set.add(f"{field}:{val}")
         except ValueError:
-            # Try datetime
             min_time = parse_time(ranges.get(">=", ranges.get(">", "00:00:00")))
             max_time = parse_time(ranges.get("<=", ranges.get("<", "23:59:59")))
-
             if min_time and max_time:
                 mid_time = min_time + (max_time - min_time) / 2
                 val = mid_time.strftime("%H:%M:%S")
@@ -86,8 +89,14 @@ for field, conditions in field_conditions.items():
                 val = (max_time - timedelta(hours=1)).strftime("%H:%M:%S")
             else:
                 val = "unknown"
-            output.append({field: val})
+            output_set.add(f"{field}:{val}")
 
-# Print output
-for item in output:
-    print(item)
+# Step 5: Convert unique entries into list of dicts
+output = []
+for item in sorted(output_set):
+    key, val = item.split(":", 1)
+    output.append({key: val})
+
+# Final output
+for row in output:
+    print(row)
