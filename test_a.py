@@ -1,34 +1,39 @@
 import re
 from html import unescape
+from datetime import datetime, timedelta
 
 html_lines = [
-    '<p>&lt;field1&gt; = &quot;A&quot;</p>',
+    '<p>&lt;field1&gt;\xa0= "A"</p>',
     '<p>&lt;field1&gt; = &quot;B&quot;</p>',
     '<p>&lt;field2&gt; != &quot;X&quot;</p>',
     '<p>&lt;field3&gt; &gt;= &quot;10&quot;</p>',
-    '<p>&lt;field3&gt; &lt;= &quot;20&quot;</p>'
+    '<p>&lt;field3&gt; &lt;= &quot;20&quot;</p>',
+    '<p>&lt;timeField&gt; &gt;= &quot;00:00:00&quot;</p>',
+    '<p>&lt;timeField&gt; &lt;= &quot;11:59:59 AM&quot;</p>'
 ]
+
+def parse_time(value):
+    for fmt in ("%H:%M:%S", "%I:%M:%S %p"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
 
 field_conditions = {}
 
 for line in html_lines:
-    # Step 1: Unescape HTML
-    line_unescaped = unescape(line)  # Now it's: <field1> = "A"
-
-    # Step 2: Extract inner text from <p> tags
-    match_text = re.search(r'<p>(.*?)</p>', line_unescaped)
+    line_clean = unescape(line.replace('\xa0', ' '))
+    match_text = re.search(r'<p>(.*?)</p>', line_clean)
     if not match_text:
         continue
 
-    text = match_text.group(1).strip()  # e.g., <field1> = "A"
-
-    # Step 3: Extract field name, operator, and value
+    text = match_text.group(1).strip()
     match = re.match(r'<(\w+)> *(=|!=|>=|<=|>|<) *"([^"]+)"', text)
     if match:
         field, op, value = match.groups()
         field_conditions.setdefault(field, []).append((op, value))
 
-# Step 4: Build output
 output = []
 
 for field, conditions in field_conditions.items():
@@ -42,28 +47,47 @@ for field, conditions in field_conditions.items():
         elif op == "!=":
             not_equals.append(val)
         else:
-            ranges[op] = float(val)
+            ranges[op] = val  # store raw for now
 
+    # Add = values
     for val in equals:
         output.append({field: val})
 
+    # Add != values
     for val in not_equals:
         output.append({field: f"not_{val}"})
 
+    # Handle ranges
     if ranges:
-        min_val = ranges.get(">=", ranges.get(">", float("-inf")))
-        max_val = ranges.get("<=", ranges.get("<", float("inf")))
-        if min_val != float("-inf") and max_val != float("inf"):
-            result = str(int((min_val + max_val) / 2))
-        elif min_val != float("-inf"):
-            result = str(int(min_val + 10))
-        elif max_val != float("inf"):
-            result = str(int(max_val - 5))
-        else:
-            result = "unknown"
+        try:
+            # Try numeric range first
+            min_val = float(ranges.get(">=", ranges.get(">", float("-inf"))))
+            max_val = float(ranges.get("<=", ranges.get("<", float("inf"))))
+            if min_val != float("-inf") and max_val != float("inf"):
+                val = str(int((min_val + max_val) / 2))
+            elif min_val != float("-inf"):
+                val = str(int(min_val + 10))
+            elif max_val != float("inf"):
+                val = str(int(max_val - 5))
+            else:
+                val = "unknown"
+            output.append({field: val})
+        except ValueError:
+            # Try datetime
+            min_time = parse_time(ranges.get(">=", ranges.get(">", "00:00:00")))
+            max_time = parse_time(ranges.get("<=", ranges.get("<", "23:59:59")))
 
-        output.append({field: result})
+            if min_time and max_time:
+                mid_time = min_time + (max_time - min_time) / 2
+                val = mid_time.strftime("%H:%M:%S")
+            elif min_time:
+                val = (min_time + timedelta(hours=1)).strftime("%H:%M:%S")
+            elif max_time:
+                val = (max_time - timedelta(hours=1)).strftime("%H:%M:%S")
+            else:
+                val = "unknown"
+            output.append({field: val})
 
-# Step 5: Print output
+# Print output
 for item in output:
     print(item)
