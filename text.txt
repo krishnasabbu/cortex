@@ -1,0 +1,56 @@
+Cortex UI – Unified Chat-Driven Workflow Platform
+
+Overview:
+Cortex UI is a modern, intelligent chat interface designed for enterprise-grade automation. It transforms natural language inputs into actionable workflows by integrating with various Model Context Protocol (MCP) tools like JIRA, Confluence, and custom APIs. With an intuitive chatbox at its core, Cortex UI provides users with both the familiarity of conversation and the power of orchestration.
+
+Core Components & Features:
+
+🔹 Native Chatbox UI Features:
+
+Real-time messaging with streaming responses
+
+Typing indicators and smooth auto-scroll experience
+
+Multi-modal inputs: text, attachments, buttons, chips
+
+Persistent memory for multi-turn interactions
+
+Customizable themes and embeddable UI for portals
+
+Intelligent suggestions for actions and next steps
+
+🔹 Custom Workflow Builder:
+
+Drag-and-drop interface for creating automated flows
+
+Supports integration with enterprise MCPs like:
+
+JIRA (issue tracking, updates)
+
+Confluence (wiki pages, attachments)
+
+Custom MCPs (e.g., database access, reporting, Splunk queries)
+
+Visual canvas for linking actions and defining sequences
+
+Zero-code configuration for rapid setup
+
+🔹 Tool Orchestration & Intent Routing:
+
+LLM-based classification engine identifies user intent
+
+Automatically selects appropriate MCP tools
+
+Handles multi-step and multi-agent workflows
+
+Supports conditional logic, parameter extraction, error recovery
+
+🔹 Semantic Search using Embeddings:
+
+Embedding models (local or API-based) for enterprise document indexing
+
+Enables semantic search within wikis, knowledge bases, and chat logs
+
+Fetches contextual information to enhance chat responses
+
+Works like enterprise-grade internal web search
